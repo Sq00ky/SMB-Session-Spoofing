@@ -18,6 +18,17 @@ VOID ReportSvcStatus(DWORD, DWORD, DWORD);
 VOID SvcInit(DWORD, LPTSTR*);
 VOID SvcReportEvent(LPTSTR);
 
+
+//
+// Purpose: 
+//   Entry point for the process
+//
+// Parameters:
+//   None
+// 
+// Return value:
+//   None, defaults to 0 (zero)
+//
 int __cdecl _tmain(int argc, TCHAR* argv[])
 {
     // If command-line parameter is "install", install the service. 
@@ -35,12 +46,25 @@ int __cdecl _tmain(int argc, TCHAR* argv[])
         { NULL, NULL }
     };
 
+    // This call returns when the service has stopped. 
+    // The process should simply terminate when the call returns.
+
     if (!StartServiceCtrlDispatcher(DispatchTable))
     {
         SvcReportEvent(LPTSTR("StartServiceCtrlDispatcher"));
     }
 }
 
+//
+// Purpose: 
+//   Installs a service in the SCM database
+//
+// Parameters:
+//   None
+// 
+// Return value:
+//   None
+//
 VOID SvcInstall()
 {
     SC_HANDLE schSCManager;
@@ -53,7 +77,11 @@ VOID SvcInstall()
         return;
     }
 
-TCHAR szPath[MAX_PATH];
+    // In case the path contains a space, it must be quoted so that
+    // it is correctly interpreted. For example,
+    // "d:\my share\myservice.exe" should be specified as
+    // ""d:\my share\myservice.exe"".
+    TCHAR szPath[MAX_PATH];
     StringCbPrintf(szPath, MAX_PATH, TEXT("\"%s\""), szUnquotedPath);
 
     // Get a handle to the SCM database. 
@@ -68,6 +96,8 @@ TCHAR szPath[MAX_PATH];
         printf("OpenSCManager failed (%d)\n", GetLastError());
         return;
     }
+
+    // Create the service
 
     schService = CreateService(
         schSCManager,              // SCM database 
@@ -96,6 +126,19 @@ TCHAR szPath[MAX_PATH];
     CloseServiceHandle(schSCManager);
 }
 
+//
+// Purpose: 
+//   Entry point for the service
+//
+// Parameters:
+//   dwArgc - Number of arguments in the lpszArgv array
+//   lpszArgv - Array of strings. The first string is the name of
+//     the service and subsequent strings are passed by the process
+//     that called the StartService function to start the service.
+// 
+// Return value:
+//   None.
+//
 VOID WINAPI SvcMain(DWORD dwArgc, LPTSTR* lpszArgv)
 {
     // Register the handler function for the service
@@ -110,13 +153,32 @@ VOID WINAPI SvcMain(DWORD dwArgc, LPTSTR* lpszArgv)
         return;
     }
 
+    // These SERVICE_STATUS members remain as set here
+
     gSvcStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
     gSvcStatus.dwServiceSpecificExitCode = 0;
 
+    // Report initial status to the SCM
+
     ReportSvcStatus(SERVICE_START_PENDING, NO_ERROR, 3000);
+
+    // Perform service-specific initialization and work.
         SvcInit(dwArgc, lpszArgv);
 }
 
+//
+// Purpose: 
+//   The service code
+//
+// Parameters:
+//   dwArgc - Number of arguments in the lpszArgv array
+//   lpszArgv - Array of strings. The first string is the name of
+//     the service and subsequent strings are passed by the process
+//     that called the StartService function to start the service.
+// 
+// Return value:
+//   None
+//
 VOID SvcInit(DWORD dwArgc, LPTSTR* lpszArgv)
 {
     ghSvcStopEvent = CreateEvent(
@@ -131,6 +193,8 @@ VOID SvcInit(DWORD dwArgc, LPTSTR* lpszArgv)
         return;
     }
 
+    // Report running status when initialization is complete.
+
     ReportSvcStatus(SERVICE_RUNNING, NO_ERROR, 0);
     
     while (true) {
@@ -138,14 +202,26 @@ VOID SvcInit(DWORD dwArgc, LPTSTR* lpszArgv)
         PROCESS_INFORMATION pi;
         si.wShowWindow = 0;
         si.dwFlags = 0x00000001;
-        wchar_t cmdLine[] = L"'C:\\Windows\\System32\\net.exe' use \\\\LAB-WKST-2\\c$";
+        wchar_t cmdLine[] = L"'C:\\Windows\\System32\\net.exe' use \\\\localhost\\c$";
         CreateProcessWithLogonW(L"svc-admin", L"contoso.com", NULL, LOGON_NETCREDENTIALS_ONLY, L"C:\\Windows\\System32\\net.exe", cmdLine, NULL, NULL, NULL, &si, &pi);
         Sleep(750000);
     }
 
 }
 
-
+//
+// Purpose: 
+//   Sets the current service status and reports it to the SCM.
+//
+// Parameters:
+//   dwCurrentState - The current state (see SERVICE_STATUS)
+//   dwWin32ExitCode - The system error code
+//   dwWaitHint - Estimated time for pending operation, 
+//     in milliseconds
+// 
+// Return value:
+//   None
+//
 VOID ReportSvcStatus(DWORD dwCurrentState,
     DWORD dwWin32ExitCode,
     DWORD dwWaitHint)
@@ -171,6 +247,17 @@ VOID ReportSvcStatus(DWORD dwCurrentState,
     SetServiceStatus(gSvcStatusHandle, &gSvcStatus);
 }
 
+//
+// Purpose: 
+//   Called by SCM whenever a control code is sent to the service
+//   using the ControlService function.
+//
+// Parameters:
+//   dwCtrl - control code
+// 
+// Return value:
+//   None
+//
 VOID WINAPI SvcCtrlHandler(DWORD dwCtrl)
 {
     // Handle the requested control code. 
@@ -196,6 +283,19 @@ VOID WINAPI SvcCtrlHandler(DWORD dwCtrl)
 
 }
 
+//
+// Purpose: 
+//   Logs messages to the event log
+//
+// Parameters:
+//   szFunction - name of function that failed
+// 
+// Return value:
+//   None
+//
+// Remarks:
+//   The service must have an entry in the Application event log.
+//
 VOID SvcReportEvent(LPTSTR szFunction)
 {
     HANDLE hEventSource;
