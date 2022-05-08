@@ -38,4 +38,5 @@ The command completed successfully.
 
 You should check back in about 13 minutes to verify that a new session has been created and the program is working properly.
 
-
+### What an Attacker Sees
+The theory behind this is when an adversary runs SharpHound and collects sessions and analyzes attack paths from owned principals, they can identify that a high privileged user is signed in on Tier-2 infrastructure (Workstations), which (it appears) they can then access and dump credentials on to gain Domain Admin access.
