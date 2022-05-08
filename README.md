@@ -46,3 +46,9 @@ In the scenario above, an attacker has compromised the user "wadm-tom@contoso.co
 ### How you Should Configure Monitoring
 Implementation of this tool is important, so is monitoring. If you implement the tool with no monitoring, it is effectively useless; therefore monitoring is a must.
 The most effective way to monitor this host is to alert on any logon. This program is best utilized on a host with no user activity that is joined to the domain with standard corporate monitoring tools (EDR, AV, Windows Event Log Forwarding, etc). It is highly recommended that you have an email alert, SMS alert, and many others if possible to ensure that incidents involving this machine are triaged as quickly as possible since this has the highest probability for a real adversary to engage with the workstation in question.
+
+### Credits
+Thank you to Microsoft for providing the service template code and for the excellent Windows API Documentation.
+- https://docs.microsoft.com/en-us/windows/win32/services/the-complete-service-sample
+- https://docs.microsoft.com/en-us/windows/win32/services/svc-cpp
+- https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createprocesswithlogonw
