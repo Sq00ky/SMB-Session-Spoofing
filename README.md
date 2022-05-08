@@ -40,3 +40,8 @@ You should check back in about 13 minutes to verify that a new session has been 
 
 ### What an Attacker Sees
 The theory behind this is when an adversary runs SharpHound and collects sessions and analyzes attack paths from owned principals, they can identify that a high privileged user is signed in on Tier-2 infrastructure (Workstations), which (it appears) they can then access and dump credentials on to gain Domain Admin access.
+<img src="https://raw.githubusercontent.com/Sq00ky/SMB-Session-Spoofing/main/attack-path.png"></img>
+
+### How you Should Configure Monitoring
+Implementation of this tool is important, so is monitoring. If you implement the tool with no monitoring, it is effectively useless; therefore monitoring is a must.
+The most effective way to monitor this host is to alert on any logon. This program is best utilized on a host with no user activity that is joined to the domain with standard corporate monitoring tools. It is highly recommended that you have an email alert, SMS alert, and many others if possible to ensure that incidents involving this machine are triaged as quickly as possible since this has the highest probability for a real adversary to engage with the workstation in question.
